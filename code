@@ -1,0 +1,224 @@
+import 'package:flutter/material.dart';
+
+void main() => runApp(ProteinByServingApp());
+
+class ProteinByServingApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext c) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Protein by Serving',
+        theme: ThemeData(primarySwatch: Colors.indigo, useMaterial3: true),
+        home: ProteinHome(),
+      );
+}
+
+class Food {
+  final String name;
+  final String servingLabel; // e.g., "1 egg", "1 cup"
+  final double proteinPerServing;
+  Food(this.name, this.servingLabel, this.proteinPerServing);
+}
+
+class ProteinHome extends StatefulWidget {
+  @override
+  _ProteinHomeState createState() => _ProteinHomeState();
+}
+
+class _ProteinHomeState extends State<ProteinHome> {
+  final foods = [
+    Food('Egg', '1 large', 6.5),
+    Food('Chicken breast', '100 g (≈1 serving)', 31.0),
+    Food('Milk', '1 cup (240 ml)', 8.0),
+    Food('Paneer', '100 g', 18.0),
+    Food('Lentils (cooked)', '1 cup', 18.0),
+    Food('Almonds', '28 g (≈23 almonds)', 6.0),
+  ];
+
+  Food? sel;
+  final servingsCtrl = TextEditingController(text: '1'); // number of servings
+  final List<Map<String, dynamic>> eat = [];
+
+  // Custom food controllers
+  final customName = TextEditingController();
+  final customServing = TextEditingController(text: '1 serving');
+  final customProtein = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    sel = foods.first;
+  }
+
+  double proteinFromEntry(Map e) => (e['protein'] * e['servings']);
+  double get total => eat.fold(0.0, (s, e) => s + proteinFromEntry(e));
+
+  void addEntry() {
+    final s = double.tryParse(servingsCtrl.text);
+    if (sel == null || s == null || s <= 0) {
+      _showSnack('Enter a valid number of servings (>0).');
+      return;
+    }
+    setState(() {
+      eat.add({
+        'name': sel!.name,
+        'servingLabel': sel!.servingLabel,
+        'protein': sel!.proteinPerServing,
+        'servings': s
+      });
+      servingsCtrl.text = '1';
+    });
+  }
+
+  void addCustomFood() {
+    final name = customName.text.trim();
+    final servingLabel = customServing.text.trim();
+    final p = double.tryParse(customProtein.text);
+    if (name.isEmpty || servingLabel.isEmpty || p == null || p < 0) {
+      _showSnack('Provide name, serving label and protein (>=0).');
+      return;
+    }
+    setState(() {
+      final f = Food(name, servingLabel, p);
+      foods.add(f);
+      sel = f;
+      customName.clear();
+      customServing.text = '1 serving';
+      customProtein.clear();
+    });
+    _showSnack('Custom food added and selected.');
+  }
+
+  void _showSnack(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+
+  @override
+  Widget build(BuildContext c) {
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: [Colors.indigo.shade700, Colors.purple.shade300]),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(14),
+            child: Column(children: [
+              Row(children: [
+                Icon(Icons.local_dining, size: 36, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Protein Tracker', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
+                Spacer(),
+              ]),
+              SizedBox(height: 12),
+              Card(
+                elevation: 6,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Row(children: [
+                    Expanded(
+                      flex: 3,
+                      child: DropdownButton<Food>(
+                        isExpanded: true,
+                        value: sel,
+                        items: foods
+                            .map((f) => DropdownMenuItem(
+                                value: f,
+                                child: Text('${f.name} — ${f.servingLabel} • ${f.proteinPerServing} g')))
+                            .toList(),
+                        onChanged: (v) => setState(() => sel = v),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Container(
+                      width: 80,
+                      child: TextField(
+                        controller: servingsCtrl,
+                        keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(labelText: 'Servings'),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    ElevatedButton(onPressed: addEntry, child: Text('Add')),
+                  ]),
+                ),
+              ),
+              SizedBox(height: 10),
+              // Custom food input (compact)
+              ExpansionTile(
+                collapsedBackgroundColor: Color.fromARGB(15, 255, 255, 255),
+                title: Text('Add custom food', style: TextStyle(color: Colors.white70)),
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    child: Column(children: [
+                      TextField(controller: customName, decoration: InputDecoration(labelText: 'Food name')),
+                      Row(children: [
+                        Expanded(child: TextField(controller: customServing, decoration: InputDecoration(labelText: 'Serving label (eg. "1 cup")'))),
+                        SizedBox(width: 8),
+                        Container(
+                          width: 110,
+                          child: TextField(controller: customProtein, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Protein / serving (g)')),
+                        ),
+                      ]),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton.icon(onPressed: addCustomFood, icon: Icon(Icons.add), label: Text('Add & Select')),
+                      )
+                    ]),
+                  )
+                ],
+              ),
+              SizedBox(height: 10),
+              Expanded(
+                child: Card(
+                  color: Color.fromRGBO(255, 255, 255, 0.95), // Fixed: Replaced withOpacity with Color.fromRGBO
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Text('Intake', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                        Spacer(),
+                        Text('Total: ${total.toStringAsFixed(2)} g', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      ]),
+                      Divider(),
+                      Expanded(
+                        child: eat.isEmpty
+                            ? Center(child: Text('No items added', style: TextStyle(color: Colors.grey)))
+                            : ListView.separated(
+                                itemCount: eat.length,
+                                separatorBuilder: (_, __) => Divider(),
+                                itemBuilder: (_, i) {
+                                  final e = eat[i];
+                                  return ListTile(
+                                    leading: CircleAvatar(child: Text(e['name'][0]), backgroundColor: Colors.indigo.shade100),
+                                    title: Text('${e['name']} • ${e['servings']} × ${e['servingLabel']}'),
+                                    subtitle: Text('${e['protein']} g protein per ${e['servingLabel']}'),
+                                    trailing: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                      Text('${proteinFromEntry(e).toStringAsFixed(2)} g', style: TextStyle(fontWeight: FontWeight.bold)),
+                                      IconButton(icon: Icon(Icons.delete_outline), onPressed: () => setState(() => eat.removeAt(i))),
+                                    ]),
+                                  );
+                                }),
+                      ),
+                    ]),
+                  ),
+                ),
+              ),
+              SizedBox(height: 8),
+              Row(children: [
+                Expanded(child: Text('Tip: enter servings (use decimals for half/partial).', style: TextStyle(color: Colors.white70))),
+                SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: () => setState(() => eat.clear()),
+                  icon: Icon(Icons.refresh),
+                  label: Text('Clear'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                )
+              ])
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
