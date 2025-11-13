@@ -170,7 +170,7 @@ class _ProteinHomeState extends State<ProteinHome> {
               SizedBox(height: 10),
               Expanded(
                 child: Card(
-                  color: Color.fromRGBO(255, 255, 255, 0.95), // Fixed: Replaced withOpacity with Color.fromRGBO
+                  color: Color.fromRGBO(255, 255, 255, 0.95),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   child: Padding(
                     padding: EdgeInsets.all(10),
@@ -193,10 +193,25 @@ class _ProteinHomeState extends State<ProteinHome> {
                                     leading: CircleAvatar(child: Text(e['name'][0]), backgroundColor: Colors.indigo.shade100),
                                     title: Text('${e['name']} • ${e['servings']} × ${e['servingLabel']}'),
                                     subtitle: Text('${e['protein']} g protein per ${e['servingLabel']}'),
-                                    trailing: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                      Text('${proteinFromEntry(e).toStringAsFixed(2)} g', style: TextStyle(fontWeight: FontWeight.bold)),
-                                      IconButton(icon: Icon(Icons.delete_outline), onPressed: () => setState(() => eat.removeAt(i))),
-                                    ]),
+                                    trailing: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text('${proteinFromEntry(e).toStringAsFixed(2)} g', style: TextStyle(fontWeight: FontWeight.bold)),
+                                        // The IconButton widget's default tap target size (48x48)
+                                        // combined with the Text widget above it was causing the overflow
+                                        // within the trailing Column of the ListTile.
+                                        // Replaced with a GestureDetector and smaller Icon with custom padding
+                                        // to reduce its overall height.
+                                        GestureDetector(
+                                          onTap: () => setState(() => eat.removeAt(i)),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 8.0),
+                                            child: Icon(Icons.delete_outline, size: 20),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    isThreeLine: true,
                                   );
                                 }),
                       ),
